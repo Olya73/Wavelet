@@ -10,23 +10,14 @@ namespace WaveletProcSolution
 {
     public class WaveletTransform
     {
-        private readonly float[] array;
-        public int Count { get { return array.Length; } }
+        public readonly float[] arrayAn;
         public WaveletTransform(float[] array)
         {
-            this.array = array;
-        }
-       
-        public float[] PartitialWaveletTransform(float[] subArray)
-        {
-            float[] result = new float[array.Length];
-            FindAverageOrDetailing(subArray,(a, b) => (a + b) / 2).CopyTo(result, 0);
-            FindAverageOrDetailing(subArray, (a, b) => (a - b) / 2).CopyTo(result, array.Length/2);
-            return result;
-        }
+            this.arrayAn = array;
+        }              
         public float[] FullWaveletTransform()
         {           
-            return FullWaveletTransformRec(array);
+            return FullWaveletTransformRec(arrayAn);
         }
         private float[] FullWaveletTransformRec(float[] subArr)
         {            
@@ -47,23 +38,46 @@ namespace WaveletProcSolution
             right.CopyTo(leftright, left.Length);
             return leftright;
         }
+        public float[] PartitialWaveletTransform(float[] subArray = null)
+        {
+            float[] result = new float[arrayAn.Length];
+            FindAverageOrDetailing(subArray ?? arrayAn, (a, b) => (a + b) / 2)
+                .CopyTo(result, 0);
+            FindAverageOrDetailing(subArray ?? arrayAn, (a, b) => (a - b) / 2)
+                .CopyTo(result, arrayAn.Length / 2);
+            return result;
+        }
+        
+        private float[] FindAverageOrDetailing(float[] subArray, Func<float, float, float> func)
+        {
+            float[] result = new float[subArray.Length / 2];
+            int j = 0;
+            for (int i = 0; i < subArray.Length; i += 2)
+            {
+                result[j] = func(subArray[i], subArray[i + 1]);
+                j++;
+            }
+            return result;
+        }
 
-        public float[] FullWeveletTransformReverse(float[] subArr)
+        public float[] FullWaveletTransformReverse()
+        {
+            return FullWeveletTransformReverseRec(arrayAn);
+        }
+        private float[] FullWeveletTransformReverseRec(float[] subArr)
         {
             float[] left = new float[subArr.Length / 2];
             float[] right = new float[subArr.Length / 2];
             Array.Copy(subArr, 0, left, 0, left.Length);
             Array.Copy(subArr, subArr.Length / 2, right, 0, right.Length);
 
-            if (subArr.Length > 2)
-            {                
-                left = FullWeveletTransformReverse(left);
-            }
+            if (subArr.Length > 2)              
+                left = FullWeveletTransformReverseRec(left);
 
-            float[] leftright = ff(left, right);
+            float[] leftright = ReestablishFromAverageAndDetailing(left, right);
             return leftright;
         }
-        private float[] ff(float[] a, float[] b)
+        private float[] ReestablishFromAverageAndDetailing(float[] a, float[] b)
         {
             float[] result = new float[a.Length + b.Length];
             for(var i = 1; i <= result.Length; i++)
@@ -74,24 +88,49 @@ namespace WaveletProcSolution
             }
             return result;    
         }
-        public float[] FindAverageOrDetailing(float[] subArray, Func<float, float, float> func)
+        
+        public double PixelAverageError(float[] arrayBn)
         {
-            float[] result = new float[subArray.Length/2];
-            int j = 0;
-            for (int i = 0; i < subArray.Length; i+=2)
+            int mn = arrayBn.Length;
+            double sum = 0;
+            for(int i = 0; i < arrayBn.Length; i++)
             {
-                result[j] = func(subArray[i], subArray[i + 1]);
-                j++;
+                sum += Math.Abs(arrayAn[i] - arrayBn[i]);
             }
-            return result;
+            return sum / mn;
         }
-        
-        private bool step(int a)
+        public double SquaredAvarageError(float[] arrayBn)
         {
-            if (a == 2) return true;
-            else if (a % 2 == 0) return step(a / 2);
-            else return false;
+            int mn = arrayBn.Length;
+            double sum = 0;
+            for (int i = 0; i < arrayBn.Length; i++)
+            {
+                sum += Math.Abs(arrayAn[i] - arrayBn[i]) * Math.Abs(arrayAn[i] - arrayBn[i]);
+            }
+            return Math.Sqrt(sum / mn);
         }
-        
+
+        public double InfinityMetric(float[] arrayBn)
+        {
+            float[] diff = new float[arrayBn.Length];
+            for (int i = 0; i < diff.Length; i++)
+            {
+                diff[i] = Math.Abs(arrayAn[i] - arrayBn[i]);
+            }
+            return diff.Max();
+        }
+
+        public double PeakSignalTONoiseRatio(float[] arrayBn, int deep)
+        {
+            double M = Math.Pow(2, deep) - 1;
+            int mn = arrayBn.Length;
+            double sum = 0;
+            for (int i = 0; i < arrayBn.Length; i++)
+            {
+                sum += Math.Abs(arrayAn[i] - arrayBn[i]) * Math.Abs(arrayAn[i] - arrayBn[i]);
+            }
+            double temp = Math.Pow(M, 2) * mn / sum;
+            return 10 * Math.Log10(temp);
+        }
     }
 }
