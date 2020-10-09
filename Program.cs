@@ -29,6 +29,17 @@ namespace WaveletProcSolution
             var dI = waveletTransform.InfinityMetric(t);
             var dPSNR = waveletTransform.PeakSignalTONoiseRatio(t, 8);
             Console.WriteLine($"d1: {d1} d2: {d2} dI: {dI} dPSNR: {dPSNR}");
+
+            WaveletTransformMatrix waveletTransformMatrix = new WaveletTransformMatrix(new float[,]
+            { { 160,240,-80,120},
+            { 0,256,24,8},
+            {-88,100,64,-4 },
+            {30,-18,220,16 } });
+            var k = waveletTransformMatrix.StandartMatrixWavelet();
+            foreach (var i in k)
+            {
+                Console.Write($"{i} ");
+            }
             Console.ReadKey();
         }
     }
